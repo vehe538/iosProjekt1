@@ -1,0 +1,8 @@
+
+prve_cislo=1
+druhe_cislo=18
+
+if [ $prve_cislo -gt $druhe_cislo -o $druhe_cislo -lt $prve_cislo ]; then
+   echo "$prve_cislo je vacsie ako druhe cislo alebo $druhe_cislo je mensie ako prve"
+else
+   echo "to mi nevychadza"
