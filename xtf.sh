@@ -1,17 +1,36 @@
-function greet(){
+function help(){
+	
 
-	echo "nazdar $1"
-
+	echo " script usage:"
+	echo " xtf [FILTER] [COMMAND] [USER_NAME] [LOG]"
+	
 }
 
-greet "Mesik"
+function list(){
 
+	if [ $# == 3 ]; then
 
-echo "prvy argument $1"
-echo "tolkoto penazi mas $2"
+		grep "$2" "$3"
 
-if [ $2 -gt 20 ]; then
-	echo "si bohac celkom"
-else 
-	echo "chudak..."
+	elif [ $# == 2 ]; then
+		
+		grep "$1" "$2"
+	fi
+}
+
+if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+	if [ $# == 1 ]; then 
+		help
+	else 
+		echo "Unknown command"
+	fi
 fi
+
+if [ "$1" == "list" ]; then
+	
+	list $2 $3
+fi
+
+
+
+
