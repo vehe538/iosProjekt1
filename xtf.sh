@@ -7,23 +7,80 @@ function help(){
 }
 
 function list(){
-	if [ $# == 3 ]; then
 		
-		if [[ "$3" == *.gz ]]; then
-			zgrep "$2" "$3"
-		else
-			grep "$2" "$3"
-		fi
-	
-	elif [ $# == 2 ]; then
-
-		if [ "$2" == *.gz ]; then
-			zgrep "$1" "$2"
-		else 
-			grep "$1" "$2"
-		fi
+	if [[ "$#" == *.gz ]]; then
+		zgrep "$1" "$2"
+	else
+		grep "$1" "$2"
 	fi
+	
 }
+
+
+
+
+
+function lcurrency(){
+	
+	
+	all_curr=()
+
+	for line in "$(grep "$1" "$2")"; do
+		
+		curr=$(echo "$line" | cut -d';' -f3)
+		all_curr+=("$curr")
+
+	done
+	
+	echo "${all_curr[@]}" | sort -u
+
+}
+
+
+function status(){
+
+	
+	all_curr=()
+	all_stats=()
+
+	for line in "$(grep "$1" "$2")"; do
+
+		curr=$(echo "$line" | cut -d';' -f3)
+		stat=$(echo "$line" | cut -d';' -f3,4)
+		all_stats+=("$stat")
+		all_curr+=("$curr")
+	done
+
+
+
+	i=0
+	j=0
+	results=()
+ 	for c1 in "${all_curr[@]}"; do
+		
+		num1=$(echo "${all_stats[i]}" | cut -d';' -f2)
+		results[i]="$num1"
+	
+		for c2 in "${all_curr[@]}"; do
+			
+			num2=$(echo "${all_stats[j]}" | cut -d';' -f2)
+
+			if [ "$c1" == "$c2" ]; then
+				results[i]=$(echo "$results[i] + $num2" | bc)
+			fi	
+				
+			((j++))
+		done
+		
+		((i++))
+	done		
+
+
+	echo "${results[@]}"	
+
+}
+
+
 
 if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 	if [ $# == 1 ]; then 
@@ -35,12 +92,30 @@ fi
 
 
 
+if [ $# == 2 ]; then
 
-if [ "$1" == "list" ]; then
-	
-	list "$2" "$3" 
+	list "$1" "$2"
 fi
 
 
+if [ $# == 3 ]; then
+
+	if [ "$1" == "list" ]; then
+	
+		list "$2" "$3" 
+	fi
+
+
+	if [ "$1" == "list-currency" ]; then
+	
+		lcurrency "$2" "$3"
+	fi
+
+	if [ "$1" == "status" ]; then
+
+		status "$2" "$3"
+
+	fi
+fi
 
 
