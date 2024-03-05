@@ -39,44 +39,51 @@ function lcurrency(){
 
 function status(){
 
-	
 	all_curr=()
 	all_stats=()
-
-	for line in "$(grep "$1" "$2")"; do
+ 
+	
+	while IFS= read -r line; do
 
 		curr=$(echo "$line" | cut -d';' -f3)
 		stat=$(echo "$line" | cut -d';' -f3,4)
-		all_stats+=("$stat")
+		
 		all_curr+=("$curr")
-	done
+		all_stats+=("$stat")
 
+	done <<< "$(grep "$1" "$2")"
 
+	
 
+	echo "${all_stats[@]}" | sort
+	results=()
 	i=0
 	j=0
-	results=()
- 	for c1 in "${all_curr[@]}"; do
-		
+
+	for c1 in $(echo "${all_curr[@]}" | sort); do
 		num1=$(echo "${all_stats[i]}" | cut -d';' -f2)
 		results[i]="$num1"
-	
-		for c2 in "${all_curr[@]}"; do
-			
+		j=0
+
+		for c2 in $(echo "${all_curr[@]}" | sort); do
 			num2=$(echo "${all_stats[j]}" | cut -d';' -f2)
 
-			if [ "$c1" == "$c2" ]; then
-				results[i]=$(echo "$results[i] + $num2" | bc)
-			fi	
-				
+			if [ "$j" -gt "$i" ] && [ "$c1" == "$c2" ]; then
+				results[i]=$(echo "${results[i]} + $num2" | bc)
+
+			fi
+			
 			((j++))
 		done
 		
+		results[i]="${results[i]} : "$c1""$'\n'
+
 		((i++))
-	done		
+	done
 
+	echo $'\n'
+	echo "${results[@]}"
 
-	echo "${results[@]}"	
 
 }
 
