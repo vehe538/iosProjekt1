@@ -53,36 +53,42 @@ function status(){
 
 	done <<< "$(grep "$1" "$2")"
 
-	
+	all_stats=($(for element in "${all_stats[@]}"; do echo "$element"; done | sort))
+	all_curr=($(for element in "${all_curr[@]}"; do echo "$element"; done | sort))	
 
-	echo "${all_stats[@]}" | sort
 	results=()
 	i=0
 	j=0
+	k=0	
 
-	for c1 in $(echo "${all_curr[@]}" | sort); do
+
+	for c1 in "${all_curr[@]}"; do
 		num1=$(echo "${all_stats[i]}" | cut -d';' -f2)
-		results[i]="$num1"
+		
 		j=0
-
-		for c2 in $(echo "${all_curr[@]}" | sort); do
+		for c2 in "${all_curr[@]}"; do
 			num2=$(echo "${all_stats[j]}" | cut -d';' -f2)
+			
 
-			if [ "$j" -gt "$i" ] && [ "$c1" == "$c2" ]; then
-				results[i]=$(echo "${results[i]} + $num2" | bc)
-
+			if [ "$i" != "$j" ] && [ "$c1" == "$c2" ]; then
+				num1=$(echo "$num1 + $num2" | bc)
+		
 			fi
 			
 			((j++))
 		done
 		
-		results[i]="${results[i]} : "$c1""$'\n'
-
+		if [ "$i" == $(echo "${#all_stats[@]}-1" | bc) ]; then
+			results+="$num1 : $c1"
+		else
+			results+="$num1 : "$c1""$'\n'
+		fi		
+			
 		((i++))
+	
 	done
 
-	echo $'\n'
-	echo "${results[@]}"
+	echo "${results[@]}" | uniq
 
 
 }
