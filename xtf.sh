@@ -36,6 +36,33 @@ function lcurrency(){
 
 }
 
+function profit(){
+	
+	if [[ -v XTF_PROFIT ]]; then
+
+		echo "$XTF_PROFIT"
+	else
+		XTF_PROFIT=20
+		echo "$XTF_PROFIT"
+	fi
+
+	mapfile -t stats < <(status "$1" "$2")
+
+	for p in "${stats[@]}"; do
+		num=$(echo "$p" | cut -d' ' -f3)
+		curr=$(echo "$p" | cut -d' ' -f1)
+		
+
+		if [ "$num" > 0 ]; then
+			#num=$((num + (num * XTF_PROFIT) / 100))
+			echo "$curr : $num"
+
+		else 
+			echo "$curr : $num"
+		fi
+	done
+}
+
 
 function status(){
 
@@ -95,9 +122,9 @@ function status(){
 		done
 		
 		if [ "$i" == $(echo "${#all_stats[@]}-1" | bc) ]; then
-			results+="$num1 : $c1"
+			results+="$c1 : $num1"
 		else
-			results+="$num1 : "$c1""$'\n'
+			results+="$c1 : "$num1""$'\n'
 		fi		
 			
 		((i++))
@@ -144,6 +171,11 @@ if [ $# == 3 ]; then
 
 		status "$2" "$3"
 
+	fi
+
+	if [ "$1" == "profit" ]; then
+	
+		profit "$2" "$3"
 	fi
 fi
 
