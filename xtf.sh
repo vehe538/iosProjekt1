@@ -8,7 +8,7 @@ function help(){
 
 function list(){
 		
-	if [[ "$#" == *.gz ]]; then
+	if [[ "$2" == *.gz ]]; then
 		zgrep "$1" "$2"
 	else
 		grep "$1" "$2"
@@ -41,17 +41,35 @@ function status(){
 
 	all_curr=()
 	all_stats=()
- 
-	
-	while IFS= read -r line; do
 
-		curr=$(echo "$line" | cut -d';' -f3)
-		stat=$(echo "$line" | cut -d';' -f3,4)
+
+	if [ "$2" == *.gz ]; then
 		
-		all_curr+=("$curr")
-		all_stats+=("$stat")
+		
+		while IFS= read -r line; do
 
-	done <<< "$(grep "$1" "$2")"
+			curr=$(echo "$line" | cut -d';' -f3)
+			stat=$(echo "$line" | cut -d';' -f3,4)
+		
+			all_curr+=("$curr")
+			all_stats+=("$stat")
+
+		done <<< "$(zgrep "$1" "$2")"
+	
+
+	else 
+
+		while IFS= read -r line; do
+
+			curr=$(echo "$line" | cut -d';' -f3)
+			stat=$(echo "$line" | cut -d';' -f3,4)
+		
+			all_curr+=("$curr")
+			all_stats+=("$stat")
+
+		done <<< "$(grep "$1" "$2")"
+	fi
+
 
 	all_stats=($(for element in "${all_stats[@]}"; do echo "$element"; done | sort))
 	all_curr=($(for element in "${all_curr[@]}"; do echo "$element"; done | sort))	
@@ -59,8 +77,6 @@ function status(){
 	results=()
 	i=0
 	j=0
-	k=0	
-
 
 	for c1 in "${all_curr[@]}"; do
 		num1=$(echo "${all_stats[i]}" | cut -d';' -f2)
