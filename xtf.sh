@@ -38,12 +38,8 @@ function lcurrency(){
 
 function profit(){
 	
-	if [[ -v XTF_PROFIT ]]; then
-
-		echo "$XTF_PROFIT"
-	else
+	if ! [[ -v XTF_PROFIT ]]; then
 		XTF_PROFIT=20
-		echo "$XTF_PROFIT"
 	fi
 
 	mapfile -t stats < <(status "$1" "$2")
@@ -52,13 +48,15 @@ function profit(){
 		num=$(echo "$p" | cut -d' ' -f3)
 		curr=$(echo "$p" | cut -d' ' -f1)
 		
+		
+		p=$(echo "0.$XTF_PROFIT")
 
-		if [ "$num" > 0 ]; then
-			#num=$((num + (num * XTF_PROFIT) / 100))
+			
+		if (( $(echo "$num > 0" | bc -l) )); then
+			num=$(echo "$num + $num * $p" | bc)
 			echo "$curr : $num"
-
 		else 
-			echo "$curr : $num"
+			echo "$curr : $num"	
 		fi
 	done
 }
