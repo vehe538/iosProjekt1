@@ -112,8 +112,7 @@ function status(){
 			
 
 			if [ "$i" != "$j" ] && [ "$c1" == "$c2" ]; then
-				num1=$(echo "$num1 + $num2" | bc)
-		
+				num1=$(awk -v num1="$num1"  -v num2="$num2" 'BEGIN { sum = num1 + num2; printf "%.4f\n", sum }')
 			fi
 			
 			((j++))
@@ -177,15 +176,38 @@ if [ $# == 3 ]; then
 	fi
 fi
 
-if [ $# == 5 ]; then
+if [ $# == 4 ]; then
 	
-	date="$2 $3"
-
+	date=$(date -d "$2" +%s)
 	if [ "$1" == "-a" ]; then
 		
-		for line in $(list $4 $5 | cut -d'\n'); do
-			echo "$line"
-		done
+				
+		while IFS= read -r line; do
+			
+			d=$(echo "$line" | awk -F';' '{ print $2 }')
+			cmp_date=$(date -d "$d" +%s)
+
+			if [ "$cmp_date" -gt "$date" ]; then
+				echo "$line"
+			fi				
+
+		done < <(list "$3" "$4")
+		
+	fi
+	if [ "$1" == "-b" ]; then
+		
+
+		while IFS= read -r line; do
+			
+			d=$(echo "$line" | awk -F';' '{ print $2 }')
+			cmp_date=$(date -d "$d" +%s)
+
+			if [ "$cmp_date" -lt "$date" ]; then
+				echo "$line"
+			fi				
+
+		done < <(list "$3" "$4")
+		
 	fi
 fi
 
