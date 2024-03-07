@@ -177,4 +177,16 @@ if [ $# == 3 ]; then
 	fi
 fi
 
+if [ $# == 5 ]; then
+	
+	date="$2 $3"
+
+	if [ "$1" == "-a" ]; then
+		
+		for line in $(list $4 $5 | cut -d'\n'); do
+			echo "$line"
+		done
+	fi
+fi
+
 
