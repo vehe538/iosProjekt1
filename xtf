@@ -137,6 +137,39 @@ function status(){
 }
 
 
+function after(){
+
+	
+	date=$(date -d "$1" +%s)
+	while IFS= read -r line; do
+			
+		d=$(echo "$line" | awk -F';' '{ print $2 }')
+		cmp_date=$(date -d "$d" +%s)
+		
+
+		if [[ "$cmp_date" -gt "$date" ]]; then
+			echo "$line"
+		fi				
+	done < <(list "$2" "$3")
+}
+
+function before(){
+
+	date=$(date -d "$1" +%s)
+	while IFS= read -r line; do
+				
+		d=$(echo "$line" | awk -F';' '{ print $2 }')
+		cmp_date=$(date -d "$d" +%s)
+		
+
+		if [[ "$cmp_date" -lt "$date" ]]; then
+			echo "$line"
+		fi				
+	done < <(list "$2" "$3")
+
+}
+	
+	
 
 if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 	if [ $# == 1 ]; then 
@@ -181,37 +214,37 @@ fi
 
 if [ $# == 4 ]; then
 	
-	date=$(date -d "$2" +%s)
-	if [ "$1" == "-a" ]; then
-		
-				
-		while IFS= read -r line; do
-			
-			d=$(echo "$line" | awk -F';' '{ print $2 }')
-			cmp_date=$(date -d "$d" +%s)
-
-			if [ "$cmp_date" -gt "$date" ]; then
-				echo "$line"
-			fi				
-
-		done < <(list "$3" "$4")
-		
+	if [ "$1" == "-a" ];then
+		after "$2" "$3" "$4"
 	fi
+
 	if [ "$1" == "-b" ]; then
 		
-
-		while IFS= read -r line; do
-			
-			d=$(echo "$line" | awk -F';' '{ print $2 }')
-			cmp_date=$(date -d "$d" +%s)
-
-			if [ "$cmp_date" -lt "$date" ]; then
-				echo "$line"
-			fi				
-
-		done < <(list "$3" "$4")
+		before "$2" "$3" "$4"
 		
 	fi
+
+fi
+
+if [ $# == 5 ]; then
+	
+	if [ "$1" == "-a" ]; then
+		if [ "$3" == "list" ]; then
+			after "$2" "$4" "$5"
+		
+		#dolpnit ine commands
+		fi
+		
+		
+	if [ "$1" == "-b" ]; then
+		if [ "$3" == "list" ]; then
+			before "$2" "$4" "$5"
+		# doplnit ine commands
+		fi
+	fi
+
+
+
 fi
 
 
