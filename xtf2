@@ -56,7 +56,7 @@ function profit(){
 		XTF_PROFIT=20
 	fi
 
-	mapfile -t stats < <(status "$1" logs.txt)
+	mapfile -t stats < <(status "$1" "$2")
 
 	for p in "${stats[@]}"; do
 		num=$(echo "$p" | cut -d' ' -f3)
@@ -202,134 +202,67 @@ if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 	fi
 fi
 
-src=0
-name=0
+
+is_file=0
+is_name=0
+is_filter=0
+is_cmd=0
 for arg in "$@"; do
-
-	if [[ "$arg" == *.log ]]; then	
-		src=1
-		cat "$arg" > logs.txt
-
-	elif [[ "$arg" == *.gz ]]; then
-		src=1
-		zcat "$arg" > logs.txt
 	
+	if [ "$arg" == "list-currency" ] || [ "$arg" == "status" ] || [ "$arg" == "profit" ] || [ "$arg" == "list" ]; then
+		cmd="$arg"
+		is_cmd=1
+
+	elif [[ "$arg" == *.gz ]] && [[ "$is_file" == 0 ]]; then	
+		file="$arg"
+		is_file=1
+	elif [[ "$arg" == *.gz ]] && [[ "$is_file" == 1 ]]; then
+		zcat "$arg" >> "$file"
+
+	elif [[ "$arg" == *.log ]] && [[ "$is_file" == 0 ]]; then
+		file="$arg"
+		is_file=1	
+	elif [[ "$arg" == *.log ]] && [[ "$is_file" == 1 ]]; then
+		cat "$arg" >> "$file"
+
 	elif [[ "$arg" =~ ^.{4,}$ ]]; then
-		name=1
+		is_name=1
+		name="$arg"
+	
+	elif [[ "$arg" =~ ^\-[a-z]{1}$ ]]; then
+		is_filter=1
+
+	elif [ "$arg" == "list" ] || [ "$arg" == "list-currency" ] || [ "$arg" == "status" ] || [ "$arg" == "profit" ]; then
+		is_cmd=1
+		cmd="$arg"
 	fi
 done
 
-if [[ "$src" == 0 ]] || [[ "$name" == 0 ]]; then
-	echo "Error: missing one or more crucial arguments." >&2
+
+
+if [[ "$is_src" == 0 ]] || [[ "$is_name" == 0 ]]; then
+	echo "ERROR: Missing one or more crucial arguments" >&2
+	exit 1
 fi
 
-if [ $# == 2 ]; then
 
-	list "$1" logs.txt
-fi
+if [[ "$is_cmd" == 1 ]]; then
 
+	if [[ "$is_filter" == 0 ]]; then
 
-if [ $# == 3 ]; then
-
-	if [ "$1" == "list" ]; then
-	
-		list "$2" logs.txt 
-	fi
-
-
-	if [ "$1" == "list-currency" ]; then
-	
-		lcurrency "$2" logs.txt
-	fi
-
-	if [ "$1" == "status" ]; then
-
-		status "$2" logs.txt
-
-	fi
-
-	if [ "$1" == "profit" ]; then
-	
-		profit "$2" logs.txt
-	fi
-fi
-
-if [ $# == 4 ]; then
-	
-	if [ "$1" == "-a" ];then
-		after "$2" "$3" logs.txt
-	fi
-
-	if [ "$1" == "-b" ]; then
-		
-		before "$2" "$3" logs.txt
-		
-	fi
-
-	if [ "$1" == "-c" ]; then
-
-		currency "$2" "$3" logs.txt
-	fi
-
-elif [ $# == 5 ]; then
-	
-	if [ "$1" == "-a" ]; then
-
-
-		if [ "$3" == "list" ]; then
-			after "$2" "$4" logs.txt
+		if [ "$cmd" == "list-currency" ]; then
+			lcurrency "$name" "$file"
+		elif [ "$cmd"  == "status" ]; then
+		      status "$name" logs.txt
+	      	elif [ "$cmd" == "profit" ]; then
+	  		profit "$name" "$file"
+		elif [ "$cmd" == "list" ]; then
+			list "$name" "$file"
 		fi
-
-		if [ "$3" == "list-currency" ]; then
-
-			after "$2" "$4" logs.txt > tmp.txt
-			lcurrency "$4" tmp.txt
-		fi
-
-		if [ "$3" == "status" ]; then
-
-			after "$2" "$4" logs.txt > tmp.txt
-			status "$4" tmp.txt
-		fi
-
-		if [ "$3" == "profit" ]; then
-			
-			after "$2" "$4" logs.txt > tmp.txt
-			profit "$4" tmp.txt
-		fi
-
-		rm tmp.txt
-
 	fi
-		
-	if [ "$1" == "-b" ]; then
-
-		if [ "$3" == "list" ]; then
-			before "$2" "$4" logs.txt
-		
-
-		elif [ "$3" == "list-currency" ]; then
-
-			before "$2" "$4" logs.txt > tmp.txt
-			lcurrency "$4" tmp.txt
-			
-		
-		elif [ "$3" == "status" ]; then
-
-			before "$2" "$4" logs.txt > tmp.txt
-			status "$4" tmp.txt
-		
-		elif [ "$3" == "profit" ]; then
-			
-			before "$2" "$4" logs.txt > tmp.txt
-			profit "$4" tmp.txt
-		fi
-		
-		rm tmp.txt
-	fi
-
-
-fi
+else 
+	list "$name" "$file"
+fi	
 
 
 
