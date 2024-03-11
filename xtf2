@@ -12,9 +12,9 @@ function help(){
 function list(){
 		
 	if [[ "$2" == *.gz ]]; then
-		zgrep "$1" "$2"
+		echo "$2" | zgrep "$1"
 	else
-		grep "$1" "$2"
+		echo "$2" | grep "$1"
 	fi
 	
 }
@@ -25,29 +25,27 @@ function list(){
 
 function lcurrency(){
 	
-	all_curr=()
 	
 
 	if [[ "$2" == *.gz ]]; then
 
-		for line in "$(zgrep "$1" "$2")"; do
+		while IFS= read -r line; do
 		
 			curr=$(echo "$line" | cut -d';' -f3)
-			all_curr+=("$curr")
+			all_curr+="$curr"$'\n'
 
-		done
+		done < <(echo "$2" | zgrep "$1")
 	else
 	
-		for line in "$(grep "$1" "$2")"; do
+		while IFS= read -r line; do
 		
 			curr=$(echo "$line" | cut -d';' -f3)
-			all_curr+=("$curr")
+			all_curr+="$curr"$'\n'
 
-		done
+		done < <(echo "$2" | grep "$1")
 	fi
 
 	echo "${all_curr[@]}" | sort -u
-
 }
 
 function profit(){
@@ -93,7 +91,7 @@ function status(){
 			all_curr+=("$curr")
 			all_stats+=("$stat")
 
-		done <<< "$(zgrep "$1" "$2")"
+		done < <(echo "$2" | zgrep "$1")
 	
 
 	else 
@@ -106,7 +104,7 @@ function status(){
 			all_curr+=("$curr")
 			all_stats+=("$stat")
 
-		done <<< "$(grep "$1" "$2")"
+		done < <(echo "$2" | grep "$1")
 	fi
 
 
@@ -132,7 +130,7 @@ function status(){
 			((j++))
 		done
 		
-		if [ "$i" == $(echo "${#all_stats[@]}-1" | bc) ]; then
+		if [ "$i" == "$(echo "${#all_stats[@]}-1" | bc)" ]; then
 			results+="$c1 : $num1"
 		else
 			results+="$c1 : "$num1""$'\n'
@@ -207,38 +205,47 @@ is_file=0
 is_name=0
 is_filter=0
 is_cmd=0
+
+index=0
 for arg in "$@"; do
-	
+		
 	if [ "$arg" == "list-currency" ] || [ "$arg" == "status" ] || [ "$arg" == "profit" ] || [ "$arg" == "list" ]; then
 		cmd="$arg"
 		is_cmd=1
 
 	elif [[ "$arg" == *.gz ]] && [[ "$is_file" == 0 ]]; then	
-		file="$arg"
+		file+=$(zcat "$arg")
 		is_file=1
 	elif [[ "$arg" == *.gz ]] && [[ "$is_file" == 1 ]]; then
-		zcat "$arg" >> "$file"
+		file+=$'\n'$(zcat "$arg")
 
 	elif [[ "$arg" == *.log ]] && [[ "$is_file" == 0 ]]; then
-		file="$arg"
+		file+=$(cat "$arg")
 		is_file=1	
 	elif [[ "$arg" == *.log ]] && [[ "$is_file" == 1 ]]; then
-		cat "$arg" >> "$file"
+		file+=$'\n'$(cat "$arg")
 
-	elif [[ "$arg" =~ ^.{4,}$ ]]; then
+	elif [[ "$arg" =~ ^[[:alnum:]_]{4,}$ ]]; then
 		is_name=1
 		name="$arg"
 	
-	elif [[ "$arg" =~ ^\-[a-z]{1}$ ]]; then
+	elif [[ "$arg" =~ ^\-a|b|c{1}$ ]]; then
 		is_filter=1
+		filter="$arg"
+		i="$index"
 
-	elif [ "$arg" == "list" ] || [ "$arg" == "list-currency" ] || [ "$arg" == "status" ] || [ "$arg" == "profit" ]; then
-		is_cmd=1
-		cmd="$arg"
+	elif [[ "$arg" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}[[:space:]][0-9]{2}:[0-9]{2}:[0-9]{2}$ ]]; then
+		is_date=1
+		date="$arg"
+	else
+		echo "$arg"
+		echo "Error: invalid argument." >&2
+		
 	fi
+
+	((index++))
 done
-
-
+ 
 
 if [[ "$is_src" == 0 ]] || [[ "$is_name" == 0 ]]; then
 	echo "ERROR: Missing one or more crucial arguments" >&2
@@ -253,15 +260,22 @@ if [[ "$is_cmd" == 1 ]]; then
 		if [ "$cmd" == "list-currency" ]; then
 			lcurrency "$name" "$file"
 		elif [ "$cmd"  == "status" ]; then
-		      status "$name" logs.txt
+		      status "$name" "$file"
 	      	elif [ "$cmd" == "profit" ]; then
 	  		profit "$name" "$file"
 		elif [ "$cmd" == "list" ]; then
 			list "$name" "$file"
 		fi
+
+	elif [[ "$is_filter" == 1 ]]; then
+		
+		if [ "$filter" == "-a" ]; then
+			file_a=$(after "$date" "$name" "$file")
+			
+		fi
 	fi
-else 
-	list "$name" "$file"
+elif []
+	#list "$name" "$file"
 fi	
 
 
