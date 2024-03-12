@@ -205,6 +205,7 @@ is_file=0
 is_name=0
 is_filter=0
 is_cmd=0
+is_curr=0
 
 index=0
 for arg in "$@"; do
@@ -237,6 +238,11 @@ for arg in "$@"; do
 	elif [[ "$arg" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}[[:space:]][0-9]{2}:[0-9]{2}:[0-9]{2}$ ]]; then
 		is_date=1
 		date="$arg"
+
+	elif [[ "$arg" =~ ^[A-Z]{3}$ ]]; then
+		is_curr=1
+		curr="$arg"
+
 	else
 		echo "$arg"
 		echo "Error: invalid argument." >&2
@@ -245,7 +251,10 @@ for arg in "$@"; do
 
 	((index++))
 done
- 
+
+
+
+
 
 if [[ "$is_src" == 0 ]] || [[ "$is_name" == 0 ]]; then
 	echo "ERROR: Missing one or more crucial arguments" >&2
@@ -271,11 +280,17 @@ if [[ "$is_cmd" == 1 ]]; then
 		
 		if [ "$filter" == "-a" ]; then
 			file_a=$(after "$date" "$name" "$file")
-			
-		fi
+			"$cmd" "$name" "$file_a"		
+		elif [ "$filter" == "-b" ]; then
+			file_b=$(before "$date" "$name" "$file")
+			"$cmd" "$name" "$file_b"
+		elif [ "$filter" == "-c" ]; then
+		      	file_c=$(currency "$curr" "$name" "$file")
+			"$cmd" "$name" "$file_c"
+		fi	
 	fi
-elif []
-	#list "$name" "$file"
+else
+	list "$name" "$file"
 fi	
 
 
