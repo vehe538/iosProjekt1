@@ -23,29 +23,15 @@ function list(){
 
 
 
-function lcurrency(){
+function listcurrency(){
 	
+	all_curr=()
+	while IFS= read -r line; do
+		curr=$(echo "$line" | awk -F';' '{ print $3 }')
+		all_curr+=("$curr")
+	done < <(list "$1" "$2")
 	
-
-	if [[ "$2" == *.gz ]]; then
-
-		while IFS= read -r line; do
-		
-			curr=$(echo "$line" | cut -d';' -f3)
-			all_curr+="$curr"$'\n'
-
-		done < <(echo "$2" | zgrep "$1")
-	else
-	
-		while IFS= read -r line; do
-		
-			curr=$(echo "$line" | cut -d';' -f3)
-			all_curr+="$curr"$'\n'
-
-		done < <(echo "$2" | grep "$1")
-	fi
-
-	echo "${all_curr[@]}" | sort -u
+	printf "%s\n" "${all_curr[@]}" | sort -u 
 }
 
 function profit(){
@@ -79,33 +65,14 @@ function status(){
 	all_curr=()
 	all_stats=()
 
+	while IFS= read -r line; do
 
-	if [[ "$2" == *.gz ]]; then
+		curr=$(echo "$line" | cut -d';' -f3)
+		stat=$(echo "$line" | cut -d';' -f3,4)
 		
-		
-		while IFS= read -r line; do
-
-			curr=$(echo "$line" | cut -d';' -f3)
-			stat=$(echo "$line" | cut -d';' -f3,4)
-		
-			all_curr+=("$curr")
-			all_stats+=("$stat")
-
-		done < <(echo "$2" | zgrep "$1")
-	
-
-	else 
-
-		while IFS= read -r line; do
-
-			curr=$(echo "$line" | cut -d';' -f3)
-			stat=$(echo "$line" | cut -d';' -f3,4)
-		
-			all_curr+=("$curr")
-			all_stats+=("$stat")
-
-		done < <(echo "$2" | grep "$1")
-	fi
+		all_curr+=("$curr")
+		all_stats+=("$stat")
+	done < <(echo "$2" | grep "$1")
 
 
 	all_stats=($(for element in "${all_stats[@]}"; do echo "$element"; done | sort))
@@ -207,13 +174,15 @@ is_filter=0
 is_cmd=0
 is_curr=0
 
-index=0
 for arg in "$@"; do
 		
-	if [ "$arg" == "list-currency" ] || [ "$arg" == "status" ] || [ "$arg" == "profit" ] || [ "$arg" == "list" ]; then
+	if [ "$arg" == "status" ] || [ "$arg" == "profit" ] || [ "$arg" == "list" ]; then
 		cmd="$arg"
 		is_cmd=1
-
+	elif [ "$arg" == "list-currency" ]; then
+		cmd="listcurrency"
+		is_cmd=1
+	
 	elif [[ "$arg" == *.gz ]] && [[ "$is_file" == 0 ]]; then	
 		file+=$(zcat "$arg")
 		is_file=1
@@ -229,17 +198,26 @@ for arg in "$@"; do
 	elif [[ "$arg" =~ ^[[:alnum:]_]{4,}$ ]]; then
 		is_name=1
 		name="$arg"
-	
-	elif [[ "$arg" =~ ^\-a|b|c{1}$ ]]; then
+	fi
+done
+
+index=0
+for arg in "$@"; do
+
+	elif [[ "$arg" =~ ^-a|-b$ ]]; then
 		is_filter=1
 		filter="$arg"
 		i="$index"
 
-	elif [[ "$arg" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}[[:space:]][0-9]{2}:[0-9]{2}:[0-9]{2}$ ]]; then
+	elif [[ "$arg" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}[[:space:]][0-9]{2}:[0-9]{2}:[0-9]{2}$ ]] && [[ "$i" == "$((index - 1))" ]]; then
 		is_date=1
 		date="$arg"
 
-	elif [[ "$arg" =~ ^[A-Z]{3}$ ]]; then
+	elif [[ "$arg" == "-c" ]]; then
+		is_filter=1
+		filter="$arg"
+		i="$index"
+	elif [[ "$arg" =~ ^[A-Z]{2,}$ ]] && [[ "$i" == "$((index - 1))" ]]; then
 		is_curr=1
 		curr="$arg"
 
@@ -247,14 +225,10 @@ for arg in "$@"; do
 		echo "$arg"
 		echo "Error: invalid argument." >&2
 		
-	fi
-
 	((index++))
 done
 
-
-
-
+echo "$filter"
 
 if [[ "$is_src" == 0 ]] || [[ "$is_name" == 0 ]]; then
 	echo "ERROR: Missing one or more crucial arguments" >&2
@@ -264,19 +238,7 @@ fi
 
 if [[ "$is_cmd" == 1 ]]; then
 
-	if [[ "$is_filter" == 0 ]]; then
-
-		if [ "$cmd" == "list-currency" ]; then
-			lcurrency "$name" "$file"
-		elif [ "$cmd"  == "status" ]; then
-		      status "$name" "$file"
-	      	elif [ "$cmd" == "profit" ]; then
-	  		profit "$name" "$file"
-		elif [ "$cmd" == "list" ]; then
-			list "$name" "$file"
-		fi
-
-	elif [[ "$is_filter" == 1 ]]; then
+	if [[ "$is_filter" == 1 ]]; then
 		
 		if [ "$filter" == "-a" ]; then
 			file_a=$(after "$date" "$name" "$file")
@@ -288,9 +250,28 @@ if [[ "$is_cmd" == 1 ]]; then
 		      	file_c=$(currency "$curr" "$name" "$file")
 			"$cmd" "$name" "$file_c"
 		fi	
+	else 
+		"$cmd" "$name" "$file"	
 	fi
-else
-	list "$name" "$file"
+
+elif [[ "$is_cmd" == 0 ]]; then
+
+	if [[ "$is_filter" == 1 ]]; then
+		
+	        if [ "$filter" == "-a" ]; then
+	       	        file_a=$(after "$date" "$name" "$file")
+	       	        echo "$file_a"
+		elif [ "$filter" == "-b" ]; then
+		 	 file_b=$(before "$date" "$name" "$file")
+		 	 echo "$file_b"
+		elif [ "$filter" == "-c" ]; then
+		 	 file_c=$(currency "$curr" "$name" "$file")
+		 	 echo "$file_c"
+		fi
+	
+	else
+		list "$name" "$file"
+	fi
 fi	
 
 
