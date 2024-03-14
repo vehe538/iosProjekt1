@@ -5,18 +5,26 @@ function help(){
 	
 
 	echo " script usage:"
-	echo " xtf [FILTER] [COMMAND] [USER_NAME] [LOG]"
+	echo " ./xtf [FILTER] [COMMAND] [USER_NAME] [LOG]"$'\n'"----------------------------------------"
+	echo " [FILTER] -->    after certain date '-a  <YYYY-MM-DD HH:MM:SS>'"
+	echo "          -->   before certain date '-b' <YYYY-MM-DD HH:MM:SS>'"
+	echo "          -->  only lines with currency '-c <code of currency>'"
+
+	echo "----------------------------------------"
+	echo " [COMMAND] -> 'list'/<blank> displays all logs of a trader "
+	echo "           -> 'list-currency' displays currencies that were traded by a trader"
+	echo "           -> 'status' displays status of currencies after all transaction "
+	echo "           -> 'profit' displays status of currencies after certain profit"
+	echo "----------------------------------------"
 	
+	exit 0
+ 
 }
 
 function list(){
 		
-	if [[ "$2" == *.gz ]]; then
-		echo "$2" | zgrep "$1"
-	else
-		echo "$2" | grep "$1"
-	fi
-	
+	echo "$2" | grep "$1"
+
 }
 
 
@@ -47,11 +55,10 @@ function profit(){
 		curr=$(echo "$p" | cut -d' ' -f1)
 		
 		
-		p=$(echo "0.$XTF_PROFIT")
+		pr=$(echo "scale=2; $XTF_PROFIT / 100" | bc)
 
-			
 		if (( $(echo "$num > 0" | bc -l) )); then
-			num=$(awk -v num="$num" -v p="$p" 'BEGIN { result = num + num * p; printf "%.4f", result }')
+			num=$(awk -v num="$num" -v pr="$pr" 'BEGIN { result = num + num * pr; printf "%.4f", result }')
 			echo "$curr : $num"
 		else 
 			echo "$curr : $num"	
@@ -178,10 +185,10 @@ for arg in "$@"; do
 		
 	if [ "$arg" == "status" ] || [ "$arg" == "profit" ] || [ "$arg" == "list" ]; then
 		cmd="$arg"
-		is_cmd=1
+		((is_cmd++))
 	elif [ "$arg" == "list-currency" ]; then
 		cmd="listcurrency"
-		is_cmd=1
+		((is_cmd++))
 	
 	elif [[ "$arg" == *.gz ]] && [[ "$is_file" == 0 ]]; then	
 		file+=$(zcat "$arg")
@@ -196,7 +203,7 @@ for arg in "$@"; do
 		file+=$'\n'$(cat "$arg")
 
 	elif [[ "$arg" =~ ^[[:alnum:]_]{4,}$ ]]; then
-		is_name=1
+		((is_name++))
 		name="$arg"
 	fi
 done
@@ -204,7 +211,7 @@ done
 index=0
 for arg in "$@"; do
 
-	elif [[ "$arg" =~ ^-a|-b$ ]]; then
+	if [[ "$arg" =~ ^-a|-b$ ]]; then
 		is_filter=1
 		filter="$arg"
 		i="$index"
@@ -220,18 +227,14 @@ for arg in "$@"; do
 	elif [[ "$arg" =~ ^[A-Z]{2,}$ ]] && [[ "$i" == "$((index - 1))" ]]; then
 		is_curr=1
 		curr="$arg"
-
-	else
-		echo "$arg"
-		echo "Error: invalid argument." >&2
-		
+	
+	fi	
 	((index++))
 done
 
-echo "$filter"
 
-if [[ "$is_src" == 0 ]] || [[ "$is_name" == 0 ]]; then
-	echo "ERROR: Missing one or more crucial arguments" >&2
+if [[ "$is_file" == 0 ]] || [[ "$is_name" != 1 ]] || [[ "$is_cmd" -gt 1 ]]; then
+	echo "ERROR: invalid number of key arguments" >&2
 	exit 1
 fi
 
