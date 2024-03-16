@@ -27,10 +27,6 @@ function list(){
 
 }
 
-
-
-
-
 function listcurrency(){
 	
 	all_curr=()
@@ -119,7 +115,6 @@ function status(){
 
 }
 
-
 function after(){
 
 	
@@ -153,19 +148,6 @@ function before(){
 }
 	
 
-function currency(){
-
-	while IFS= read -r line; do
-				
-		curr=$(echo "$line" | awk -F';' '{ print $3 }')
-
-		if [[ "$curr" == "$1" ]]; then
-			echo "$line"
-		fi				
-	done < <(echo "$2")
-
-}
-
 if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 	if [ $# == 1 ]; then 
 		help
@@ -176,19 +158,18 @@ fi
 
 
 is_file=0
-is_name=0
-is_filter=0
-is_cmd=0
-is_curr=0
+num_of_names=0
+num_of_filters=0
+num_of_cmd=0
 
 for arg in "$@"; do
 		
 	if [ "$arg" == "status" ] || [ "$arg" == "profit" ] || [ "$arg" == "list" ]; then
 		cmd="$arg"
-		((is_cmd++))
+		((num_of_cmd++))
 	elif [ "$arg" == "list-currency" ]; then
 		cmd="listcurrency"
-		((is_cmd++))
+		((num_of_cmd++))
 	
 	elif [[ "$arg" == *.gz ]] && [[ "$is_file" == 0 ]]; then	
 		file+=$(zcat "$arg")
@@ -202,93 +183,100 @@ for arg in "$@"; do
 	elif [[ "$arg" == *.log ]] && [[ "$is_file" == 1 ]]; then
 		file+=$'\n'$(cat "$arg")
 
-	elif [[ "$arg" =~ ^[[:alnum:]_]{4,}$ ]]; then
-		((is_name++))
+	elif [[ "$arg" =~ ^[[:alnum:]]{4,}$ ]]; then
+		((num_of_names++))
 		name="$arg"
+
+	elif [[ "$arg" =~ ^[[:alnum:][:space:]]{4,}$ ]]; then  #kontrola aby v mene nebol biely znak
+		echo "ERROR: invalid name" >&2
+		exit 1
 	fi
 done
 
 index=0
-filters=()
-filters_attr=()
+curr_filters=()
+date_filters=()
+dates=()
+currencies=()
+
 
 for arg in "$@"; do
 
 	if [[ "$arg" =~ ^-a|-b$ ]]; then
-		filters[$index]="$arg"
+		date_filters[$index]="$arg"
 		i="$index"
-		((is_filter++))
+		((num_of_filters++))
 		((index++))
 
 	elif [[ "$arg" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}[[:space:]][0-9]{2}:[0-9]{2}:[0-9]{2}$ ]] && [[ "$i" == "$(($index - 1))" ]]; then
-		is_date=1
-		filters_attr[$((index - 1))]="$arg"
+		dates[$((index - 1))]="$arg"
 
 
 	elif [[ "$arg" == "-c" ]]; then
-		filters[$index]="$arg"
+		curr_filters[$index]="$arg"
 		i="$index"
-		((is_filter++))
+		((num_of_filters++))
 		((index++))
 
 	elif [[ "$arg" =~ ^[A-Z]{2,}$ ]] && [[ "$i" == "$(($index - 1))" ]]; then
-		is_curr=1
-		filters_attr[$((index - 1))]="$arg"
+		currencies[$((index - 1))]="$arg"
+	
+
 	
 	fi	
 done
 
 
-if [[ "$is_file" == 0 ]] || [[ "$is_name" != 1 ]] || [[ "$is_cmd" -gt 1 ]]; then
+
+if [[ "$is_file" == 0 ]] || [[ "$num_of_names" != 1 ]] || [[ "$num_of_cmd" -gt 1 ]]; then
 	echo "ERROR: invalid number of key arguments" >&2
 	exit 1
 fi
 
-#echo "${filters[1]} ${filters_attr[1]}"
-#after "${filters_attr[0]}" "$file"
-#exit 0
 
-if [[ "$is_cmd" == 1 ]]; then
 
-	if [[ "$is_filter" -ge 1 ]]; then
-		index=0
-		for f in "${filters[@]}"; do
+if [[ "$num_of_cmd" == 1 ]]; then
+	final_cmd="$cmd"	
+else
+	final_cmd="list"  # ak nie je zadany prikaz, pouzije sa 'list'
+fi
 
-			if [ "$f" == "-a" ]; then			
-				file=$(after "${filters_attr[$index]}" "$file")
-			elif [ "$f" == "-b" ]; then
-				file=$(before "${filters_attr[$index]}" "$file")
-			elif [ "$f" == "-c" ]; then
-				file=$(currency "${filters_attr[$index]}" "$file")
-			fi
-			((index++))
-		done
-		"$cmd" "$name" "$file"
-	else 
-		"$cmd" "$name" "$file"	
-	fi
 
-elif [[ "$is_cmd" == 0 ]]; then
+if [[ "$num_of_filters" -ge 1 ]]; then  # ak su zadane filtre..
 
-	if [[ "$is_filter" -ge 1 ]]; then
-
-		index=0
-		for f in "${filters[@]}"; do
+	index=0
+	for f in "${date_filters[@]}"; do
 			
-			if [ "$f" == "-a" ]; then			
-				file=$(after "${filters_attr[$index]}" "$file")
-			elif [ "$f" == "-b" ]; then
-				file=$(before "${filters_attr[$index]}" "$file")
-			elif [ "$f" == "-c" ]; then
-				file=$(currency "${filters_attr[$index]}" "$file")
-			fi
+		if [ "$f" == "-a" ]; then			
+			file=$(after "${dates[$index]}" "$file")
+		elif [ "$f" == "-b" ]; then
+			file=$(before "${dates[$index]}" "$file")
+		fi
+		((index++))
+	done
+	
+
+	if [[ "${#currencies[@]}" -gt 0 ]]; then
+
+		index=0
+		file2=""
+		for c in "${currencies[@]}"; do
+
+			d=$(echo "$file" | grep "$c")
+			file2="$file2$d"
+			file2="$file2"$'\n'
 			((index++))
 		done
-		list "$name" "$file"
-	else
-		list "$name" "$file"
+
+		file="$file2"
+		
 	fi
-fi	
+
+	"$final_cmd" "$name" "$file"
+else
+	"$final_cmd" "$name" "$file"
+fi
+	
 
 
 
