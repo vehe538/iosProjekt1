@@ -1,5 +1,5 @@
 #!/bin/bash
-
+export POSIXLY_CORRECT=yes
 
 function help(){
 	
@@ -53,7 +53,7 @@ function profit(){
 		
 		pr=$(echo "scale=2; $XTF_PROFIT / 100" | bc)
 
-		if (( $(echo "$num > 0" | bc -l) )); then
+		if awk -v num="$num" 'BEGIN { if (num > 0) exit 0; else exit 1 }'; then
 			num=$(awk -v num="$num" -v pr="$pr" 'BEGIN { result = num + num * pr; printf "%.4f", result }')
 			echo "$curr : $num"
 		else 
