@@ -5,18 +5,24 @@ function help(){
 	
 
 	echo " script usage:"
-	echo " ./xtf [FILTER] [COMMAND] [USER_NAME] [LOG]"$'\n'"----------------------------------------"
-	echo " [FILTER] -->    after certain date '-a  <YYYY-MM-DD HH:MM:SS>'"
-	echo "          -->   before certain date '-b' <YYYY-MM-DD HH:MM:SS>'"
-	echo "          -->  only lines with currency '-c <code of currency>'"
-
+	echo "-------------------------------------------"
+	echo " ./xtf [FILTER] [COMMAND] [USER_NAME] [LOG]"$'\n'"-------------------------------------------"
+	echo " [FILTER] ->    after certain date '-a  <YYYY-MM-DD HH:MM:SS>'"
+	echo "          ->   before certain date '-b' <YYYY-MM-DD HH:MM:SS>'"
+	echo "          ->  only lines with currency '-c <code of currency>'"
 	echo "----------------------------------------"
 	echo " [COMMAND] -> 'list'/<blank> displays all logs of a trader "
 	echo "           -> 'list-currency' displays currencies that were traded by a trader"
 	echo "           -> 'status' displays status of currencies after all transaction "
 	echo "           -> 'profit' displays status of currencies after certain profit"
 	echo "----------------------------------------"
-	
+	echo " [USER_NAME] -> enter username, whose logs will be displayed"
+	echo "             -> one name must be defined "
+	echo "----------------------------------------"
+	echo " [LOG]       -> enter '*.log' or '*.log.gz' containing all users data"
+	echo "             -> one or more must be defined "
+	echo "----------------------------------------"
+	echo " "
 	exit 0
  
 }
@@ -152,7 +158,8 @@ if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 	if [ $# == 1 ]; then 
 		help
 	else 
-		echo "Unknown command"
+		echo "Unknown command" >&2
+		exit 1
 	fi
 fi
 
